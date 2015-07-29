@@ -405,7 +405,7 @@ BigUint& operator&=(BigUint& lhs, const BigUint& rhs)
         lhsVal[i] &= rhsVal[i];
     }
 
-    while (lhsVal.back() == 0) lhsVal.pop_back();
+    while (!lhs.zero() && !lhsVal.back()) lhsVal.pop_back();
 
     return lhs;
 }

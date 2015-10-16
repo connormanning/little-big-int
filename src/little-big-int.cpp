@@ -9,27 +9,22 @@
 #include <sstream>
 
 BigUint::BigUint()
-    : m_val()
-{
-    m_val.push_back(0);
-}
+    : m_val{1, 0, Alloc(m_arena)}
+{ }
 
 BigUint::BigUint(const Block val)
-    : m_val()
-{
-    m_val.push_back(val);
-}
+    : m_val{1, val, Alloc(m_arena)}
+{ }
 
 BigUint::BigUint(std::vector<Block> blocks)
-    : m_val(blocks)
+    : m_val(blocks.begin(), blocks.end(), Alloc(m_arena))
 {
     if (m_val.empty()) m_val.push_back(0);
 }
 
 BigUint::BigUint(const std::string& str)
-    : m_val()
+    : m_val{1, 0, Alloc(m_arena)}
 {
-    m_val.push_back(0);
     BigUint factor(1);
     const std::size_t size(str.size());
 
@@ -46,7 +41,7 @@ BigUint::BigUint(const std::string& str)
 }
 
 BigUint::BigUint(const BigUint& other)
-    : m_val(other.m_val)
+    : m_val(other.m_val, Alloc(m_arena))
 { }
 
 BigUint& BigUint::operator=(const BigUint& other)
@@ -189,29 +184,26 @@ void BigUint::add(const BigUint& rhs, const Block shift)
 
 std::pair<BigUint, BigUint> BigUint::divMod(const BigUint& d) const
 {
-    std::pair<BigUint, BigUint> result;
-    auto& q(result.first);
-    auto& r(result.second);
-
     const auto& dVal(d.val());
 
     if (d.zero()) throw std::invalid_argument("Cannot divide by zero");
 
     if (trivial() && d.trivial())
     {
-        q = m_val.front() / dVal.front();
-        r = m_val.front() % dVal.front();
-        return result;
+        return std::make_pair(
+                BigUint(m_val.front() / dVal.front()),
+                BigUint(m_val.front() % dVal.front()));
     }
-
-    if (*this < d)
+    else if (*this < d)
     {
-        q = 0;
-        r = m_val;
-        return result;
+        return std::make_pair(BigUint(0), *this);
     }
     else
     {
+        std::pair<BigUint, BigUint> result;
+        auto& q(result.first);
+        auto& r(result.second);
+
         const std::size_t nValSize(m_val.size());
 
         // Don't presize the quotient here, we can't have leading zero blocks
@@ -239,13 +231,10 @@ std::pair<BigUint, BigUint> BigUint::divMod(const BigUint& d) const
         }
 
         while (!qVal.back()) qVal.pop_back();
+
+        return result;
     }
-
-    return result;
 }
-
-std::vector<Block>& BigUint::val() { return m_val; }
-const std::vector<Block>& BigUint::val() const { return m_val; }
 
 BigUint& operator+=(BigUint& lhs, const BigUint& rhs)
 {
@@ -296,6 +285,18 @@ BigUint& operator-=(BigUint& lhs, const BigUint& rhs)
     auto& lhsVal(lhs.val());
     const auto& rhsVal(rhs.val());
 
+    if (lhs.trivial() && rhs.trivial())
+    {
+        if (lhsVal.front() >= rhsVal.front())
+        {
+            lhsVal.front() -= rhsVal.front();
+            return lhs;
+        }
+
+        throw std::underflow_error(
+                "Subtraction result was negative (block zero)");
+    }
+
     const std::size_t rhsSize(rhsVal.size());
     const std::size_t lhsSize(lhsVal.size());
 
@@ -303,12 +304,6 @@ BigUint& operator-=(BigUint& lhs, const BigUint& rhs)
     {
         throw std::underflow_error(
                 "Subtraction result was negative (block size)");
-    }
-    else if (lhs.trivial())
-    {
-        if (lhsVal.front() >= rhsVal.front()) lhsVal.front() -= rhsVal.front();
-        else throw std::underflow_error(
-                "Subtraction result was negative (block zero)");
     }
     else
     {
@@ -429,6 +424,14 @@ BigUint& operator|=(BigUint& lhs, const BigUint& rhs)
 
 BigUint& operator<<=(BigUint& lhs, Block rhs)
 {
+    if (
+            lhs.trivial() &&
+            (lhs.m_val.front() & (blockMax << (bitsPerBlock - rhs))) == 0)
+    {
+        lhs.m_val.front() <<= rhs;
+        return lhs;
+    }
+
     const std::size_t startBlocks(lhs.blockSize());
     const std::size_t shiftBlocks(rhs / bitsPerBlock);
     const std::size_t shiftBits(rhs % bitsPerBlock);
@@ -475,44 +478,11 @@ BigUint& operator>>=(BigUint& lhs, Block rhs)
 
     Block last(val.back() >> shiftBits);
     val.resize(startBlocks - shiftBlocks - (last ? 0 : 1));
-    if (last) val.back() = last;
+
+    if (val.empty()) val.push_back(0);
+    else if (last) val.back() = last;
 
     return lhs;
-}
-
-BigUint operator+(const BigUint& lhs, const BigUint& rhs)
-{
-    BigUint result(lhs);
-    result += rhs;
-    return result;
-}
-
-BigUint operator-(const BigUint& lhs, const BigUint& rhs)
-{
-    BigUint result(lhs);
-    result -= rhs;
-    return result;
-}
-
-BigUint operator*(const BigUint& lhs, const BigUint& rhs)
-{
-    BigUint result(lhs);
-    result *= rhs;
-    return result;
-}
-
-BigUint operator/(const BigUint& lhs, const BigUint& rhs)
-{
-    BigUint result(lhs);
-    result /= rhs;
-    return result;
-}
-
-BigUint operator%(const BigUint& lhs, const BigUint& rhs)
-{
-    BigUint result(lhs);
-    result %= rhs;
-    return result;
 }
 
 BigUint operator&(const BigUint& lhs, const BigUint& rhs)
@@ -528,13 +498,6 @@ BigUint operator&(const BigUint& lhs, const BigUint& rhs)
         result = rhs;
         result &= lhs;
     }
-    return result;
-}
-
-BigUint operator|(const BigUint& lhs, const BigUint& rhs)
-{
-    BigUint result(lhs);
-    result |= rhs;
     return result;
 }
 
@@ -620,6 +583,12 @@ bool operator!=(const BigUint& lhs, const BigUint& rhs)
 
 bool operator<(const BigUint& lhs, const BigUint& rhs)
 {
+    if (lhs.trivial())
+    {
+        if (rhs.trivial()) return lhs.m_val.front() < rhs.m_val.front();
+        else return true;
+    }
+
     const auto& lhsVal(lhs.val());
     const auto& rhsVal(rhs.val());
 

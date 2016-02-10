@@ -7,6 +7,7 @@
 #include <deque>
 #include <iostream>
 #include <sstream>
+#include <stdexcept>
 
 BigUint::BigUint()
     : m_val{1, 0, Alloc(m_arena)}
@@ -425,8 +426,9 @@ BigUint& operator|=(BigUint& lhs, const BigUint& rhs)
 BigUint& operator<<=(BigUint& lhs, Block rhs)
 {
     if (
-            lhs.trivial() &&
-            (lhs.m_val.front() & (blockMax << (bitsPerBlock - rhs))) == 0)
+            lhs.zero() || !rhs ||
+            (lhs.trivial() && rhs < bitsPerBlock &&
+            (lhs.m_val.front() & (blockMax << (bitsPerBlock - rhs))) == 0))
     {
         lhs.m_val.front() <<= rhs;
         return lhs;
@@ -503,6 +505,14 @@ BigUint operator&(const BigUint& lhs, const BigUint& rhs)
 
 BigUint operator<<(const BigUint& lhs, const Block rhs)
 {
+    if (
+            lhs.zero() || !rhs ||
+            (lhs.trivial() && rhs < bitsPerBlock &&
+            (lhs.m_val.front() & (blockMax << (bitsPerBlock - rhs))) == 0))
+    {
+        return BigUint(lhs.m_val.front() << rhs);
+    }
+
     const std::size_t startBlocks(lhs.blockSize());
     const std::size_t shiftBlocks(rhs / bitsPerBlock);
     const std::size_t shiftBits(rhs % bitsPerBlock);
@@ -521,6 +531,8 @@ BigUint operator<<(const BigUint& lhs, const Block rhs)
     }
 
     if (carry) val.push_back(carry);
+
+    while (val.size() != 1 && val.back() == 0) val.pop_back();
 
     return result;
 }
@@ -634,5 +646,10 @@ Block log2(const BigUint& in)
 {
     if (in.zero()) throw std::runtime_error("log2(0) is undefined");
     return std::log2(in.val().back()) + (in.blockSize() - 1) * bitsPerBlock;
+}
+
+BigUint sqrt(const BigUint& in)
+{
+    return BigUint(1) << (log2(in) / 2);
 }
 

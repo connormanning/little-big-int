@@ -450,6 +450,25 @@ TEST(LittleBigInt, BitwiseOrEquals)
             "05113990180402584763678187");
 }
 
+TEST(LittleBigInt, InterleaveRegression)
+{
+    std::size_t x(0);
+    std::size_t y(7);
+    BigUint expandX(0);
+    BigUint expandY(0);
+
+    for (std::size_t i(0); i < 64; ++i)
+    {
+        expandX |= BigUint((x >> i) & 1ULL) << (i * 2);
+        expandY |= BigUint((y >> i) & 1ULL) << (i * 2);
+    }
+
+    BigUint result((expandY << 1) | expandX);
+
+    ASSERT_TRUE(result.trivial());
+    EXPECT_EQ(result.getSimple(), 42);
+}
+
 TEST(LittleBigInt, BitShiftLeftEquals)
 {
     // TODO
@@ -518,6 +537,14 @@ TEST(LittleBigInt, Comparisons)
 TEST(LittleBigInt, Log2)
 {
     // TODO
+}
+
+TEST(LittleBigInt, sqrt)
+{
+    EXPECT_EQ(sqrt(BigUint(68719476736)), 262144);
+    EXPECT_EQ(
+            sqrt(BigUint("22300745198530623141535718272648361505980416")),
+            BigUint("4722366482869645213696"));
 }
 
 int main(int argc, char** argv)

@@ -9,22 +9,9 @@
 #include <sstream>
 #include <stdexcept>
 
-BigUint::BigUint()
-    : m_val{1, 0, Alloc(m_arena)}
-{ }
-
-BigUint::BigUint(const Block val)
-    : m_val{1, val, Alloc(m_arena)}
-{ }
-
-BigUint::BigUint(std::vector<Block> blocks)
-    : m_val(blocks.begin(), blocks.end(), Alloc(m_arena))
-{
-    if (m_val.empty()) m_val.push_back(0);
-}
-
 BigUint::BigUint(const std::string& str)
-    : m_val{1, 0, Alloc(m_arena)}
+    : m_arena()
+    , m_val(1, 0, Alloc(m_arena))
 {
     BigUint factor(1);
     const std::size_t size(str.size());
@@ -39,16 +26,6 @@ BigUint::BigUint(const std::string& str)
     {
         *this += BigUint(std::stoull(str.substr(0, size % 8)) * factor);
     }
-}
-
-BigUint::BigUint(const BigUint& other)
-    : m_val(other.m_val, Alloc(m_arena))
-{ }
-
-BigUint& BigUint::operator=(const BigUint& other)
-{
-    m_val = other.m_val;
-    return *this;
 }
 
 std::string BigUint::str() const
@@ -108,18 +85,6 @@ std::string BigUint::bin() const
     }
 
     return stream.str();
-}
-
-unsigned long long BigUint::getSimple() const
-{
-    if (m_val.size() == 1)
-    {
-        return m_val[0];
-    }
-    else
-    {
-        throw std::overflow_error("This BigUint is too large to get as long.");
-    }
 }
 
 void BigUint::add(const BigUint& rhs, const Block shift)

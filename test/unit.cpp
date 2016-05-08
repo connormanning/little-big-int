@@ -1,6 +1,8 @@
 #include "little-big-int.hpp"
 #include "gtest/gtest.h"
 
+#include <map>
+
 namespace
 {
     const BigUint zero;
@@ -27,6 +29,8 @@ namespace
 
     const std::string bigE(
             "2718281828459045235360287471352662497757247093699959574966967627");
+
+    const std::vector<uint64_t> testVector { 3928502 };
 }
 
 TEST(LittleBigInt, ValueConstructor)
@@ -469,6 +473,7 @@ TEST(LittleBigInt, InterleaveRegression)
     EXPECT_EQ(result.getSimple(), 42);
 }
 
+/*
 TEST(LittleBigInt, BitShiftLeftEquals)
 {
     // TODO
@@ -538,13 +543,33 @@ TEST(LittleBigInt, Log2)
 {
     // TODO
 }
+*/
 
-TEST(LittleBigInt, sqrt)
+TEST(LittleBigInt, Sqrt)
 {
     EXPECT_EQ(sqrt(BigUint(68719476736)), 262144);
     EXPECT_EQ(
             sqrt(BigUint("22300745198530623141535718272648361505980416")),
             BigUint("4722366482869645213696"));
+}
+
+TEST(LittleBigInt, MapMovement)
+{
+    // This doesn't really test functionality, but tests that we survive the
+    // issue here, relevant on Clang 7.3.0 and 7.3.1:
+    //      https://openradar.appspot.com/25704040
+    //
+    // See https://github.com/connormanning/little-big-int/issues/1 for more
+    // info.
+    std::map<BigUint, uint64_t> from;
+    const std::size_t v(3928502);
+    from[v] = v;
+
+    // If susceptible, we'll segfault here.
+    auto to(std::move(from));
+
+    EXPECT_EQ(from.size(), 0);
+    EXPECT_EQ(to.size(), 1);
 }
 
 int main(int argc, char** argv)

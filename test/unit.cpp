@@ -70,6 +70,7 @@ TEST(LittleBigInt, Zero)
 {
     EXPECT_TRUE(zero.zero());
     EXPECT_TRUE(BigUint(0).zero());
+    EXPECT_EQ(BigUint(0).str(), "0");
 
     BigUint a(2);
     EXPECT_FALSE(a.zero());

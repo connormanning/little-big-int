@@ -61,7 +61,7 @@ std::string BigUint::str() const
     else
     {
         // Guess the number of digits with an approximation of log10(*this).
-        std::deque<char> digits(log2(*this) * 1000 / 3322 + 1, 48);
+        std::deque<char> digits(log2(*this) * 1000 / 3322 + 1, '0');
         BigUint factor(10);
         BigUint lagged(1);
 
@@ -73,7 +73,7 @@ std::string BigUint::str() const
         {
             current = divMod(factor);
 
-            digits.at(i++) = 48 + (current.second / lagged).getSimple();
+            digits.at(i++) = '0' + (current.second / lagged).getSimple();
 
             lagged = factor;
             factor *= 10;
@@ -84,13 +84,13 @@ std::string BigUint::str() const
         {
             current = divMod(factor);
 
-            digits.push_back(48 + (current.second / lagged).getSimple());
+            digits.push_back('0' + (current.second / lagged).getSimple());
 
             lagged = factor;
             factor *= 10;
         }
 
-        while (digits.back() == 48) digits.pop_back();
+        while (digits.back() == '0') digits.pop_back();
 
         return std::string(digits.rbegin(), digits.rend());
     }

@@ -563,9 +563,10 @@ TEST(LittleBigInt, Log2)
 
 TEST(LittleBigInt, Sqrt)
 {
-    EXPECT_EQ(sqrt(BigUint(68719476736)), 262144);
+    EXPECT_EQ(BigUint::sqrt(BigUint(68719476736)), 262144);
     EXPECT_EQ(
-            sqrt(BigUint("22300745198530623141535718272648361505980416")),
+            BigUint::sqrt(
+                BigUint("22300745198530623141535718272648361505980416")),
             BigUint("4722366482869645213696"));
 }
 

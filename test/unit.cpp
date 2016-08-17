@@ -8,10 +8,11 @@ namespace
     const BigUint zero;
     const BigUint one(1);
 
-    const BigUint maxTrivial((BigUint(1) << bitsPerBlock) - 1);
-    const BigUint minNontrivial((BigUint(1) << bitsPerBlock));
+    const BigUint maxTrivial((BigUint(1) << BigUint::bitsPerBlock) - 1);
+    const BigUint minNontrivial((BigUint(1) << BigUint::bitsPerBlock));
 
-    const Block toggle(2863311530); // 0b10 repeated 16 times (total 32 bits).
+    // 0b10 repeated 16 times (total 32 bits).
+    const BigUint::Block toggle(2863311530);
 
     const std::string twoToThe64("18446744073709551616");
     const std::string twoToThe64MinusOne("18446744073709551615");
@@ -40,10 +41,10 @@ TEST(LittleBigInt, ValueConstructor)
     EXPECT_EQ(BigUint(0).getSimple(), 0);
     EXPECT_EQ(one.getSimple(), 1);
     EXPECT_EQ(
-            BigUint(1ULL << (bitsPerBlock - 1)),
-            1ULL << (bitsPerBlock - 1));
-    EXPECT_EQ(BigUint(blockMax), blockMax);
-    EXPECT_EQ(BigUint(-1ULL), blockMax);
+            BigUint(1ULL << (BigUint::bitsPerBlock - 1)),
+            1ULL << (BigUint::bitsPerBlock - 1));
+    EXPECT_EQ(BigUint(BigUint::blockMax), BigUint::blockMax);
+    EXPECT_EQ(BigUint(-1ULL), BigUint::blockMax);
 }
 
 TEST(LittleBigInt, StringConstructorTrivial)
@@ -51,10 +52,10 @@ TEST(LittleBigInt, StringConstructorTrivial)
     EXPECT_EQ(BigUint("0").getSimple(), 0);
     EXPECT_EQ(BigUint("1").getSimple(), 1);
     EXPECT_EQ(
-            BigUint(std::to_string(1ULL << (bitsPerBlock - 1))),
-            1ULL << (bitsPerBlock - 1));
-    EXPECT_EQ(BigUint(std::to_string(blockMax)), blockMax);
-    EXPECT_EQ(BigUint(std::to_string(-1ULL)), blockMax);
+            BigUint(std::to_string(1ULL << (BigUint::bitsPerBlock - 1))),
+            1ULL << (BigUint::bitsPerBlock - 1));
+    EXPECT_EQ(BigUint(std::to_string(BigUint::blockMax)), BigUint::blockMax);
+    EXPECT_EQ(BigUint(std::to_string(-1ULL)), BigUint::blockMax);
 }
 
 TEST(LittleBigInt, StringConstructorComplex)
@@ -64,6 +65,20 @@ TEST(LittleBigInt, StringConstructorComplex)
 
     EXPECT_EQ(BigUint(twoToThe128).str(), twoToThe128);
     EXPECT_EQ((BigUint(twoToThe128) - 1).str(), twoToThe128MinusOne);
+}
+
+TEST(LittleBigInt, BinaryConstructor)
+{
+    // The casting is unnecessary, but demonstrates a use-case.
+    BigUint a(bigPi);
+    const std::vector<char> bin(
+            reinterpret_cast<const char*>(a.data().data()),
+            reinterpret_cast<const char*>(a.data().data() + a.data().size()));
+    BigUint b(
+            reinterpret_cast<const BigUint::Block*>(bin.data()),
+            reinterpret_cast<const BigUint::Block*>(bin.data() + bin.size()));
+
+    EXPECT_EQ(a, b);
 }
 
 TEST(LittleBigInt, Zero)
@@ -84,7 +99,7 @@ TEST(LittleBigInt, Zero)
 
     EXPECT_FALSE((zero + 1).zero());
     EXPECT_FALSE(BigUint(1).zero());
-    EXPECT_FALSE(BigUint(blockMax).zero());
+    EXPECT_FALSE(BigUint(BigUint::blockMax).zero());
     EXPECT_FALSE(BigUint(twoToThe64).zero());
     EXPECT_FALSE(BigUint(twoToThe128).zero());
 }
@@ -366,7 +381,7 @@ TEST(LittleBigInt, BitwiseAndEquals)
     big &= 0;
     EXPECT_TRUE(big.zero());
 
-    big = Block(-1);
+    big = BigUint::Block(-1);
     big &= BigUint(toggle);
     EXPECT_EQ(big.getSimple(), toggle);
 

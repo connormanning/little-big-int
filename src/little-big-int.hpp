@@ -262,9 +262,10 @@ public:
     static BigUint sqrt(const BigUint& in);
 
 private:
-    BigUint(std::vector<Block> blocks)
+    enum InitialSize : size_t {};
+    explicit BigUint(InitialSize size)
         : m_arena()
-        , m_val(blocks.begin(), blocks.end(), Alloc(m_arena))
+        , m_val(size, 0, Alloc(m_arena))
     {
         if (m_val.empty()) m_val.push_back(0);
     }

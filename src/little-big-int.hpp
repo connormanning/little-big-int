@@ -148,6 +148,8 @@ private:
 template <class T, std::size_t N, std::size_t A = detail::maxAlign>
 class ShortAlloc
 {
+    template <class, std::size_t, std::size_t>
+    friend class ShortAlloc;
 public:
     using value_type = T;
     using ArenaType = Arena<N, A>;
@@ -210,7 +212,7 @@ public:
 
     BigUint& operator=(const BigUint& other)
     {
-        m_val.assign(other.m_val.begin(), other.m_val.end());
+        if (this != &other) m_val.assign(other.m_val.begin(), other.m_val.end());
         return *this;
     }
 
@@ -262,9 +264,10 @@ public:
     static BigUint sqrt(const BigUint& in);
 
 private:
-    BigUint(std::vector<Block> blocks)
+    enum InitialSize : size_t {};
+    explicit BigUint(InitialSize size)
         : m_arena()
-        , m_val(blocks.begin(), blocks.end(), Alloc(m_arena))
+        , m_val(size, 0, Alloc(m_arena))
     {
         if (m_val.empty()) m_val.push_back(0);
     }

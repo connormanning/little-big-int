@@ -500,7 +500,7 @@ BigUint operator<<(const BigUint& lhs, const BigUint::Block rhs)
     const std::size_t shiftBlocks(rhs / BigUint::bitsPerBlock);
     const std::size_t shiftBits(rhs % BigUint::bitsPerBlock);
 
-    BigUint result(std::vector<BigUint::Block>(startBlocks + shiftBlocks, 0));
+    BigUint result(BigUint::InitialSize(startBlocks + shiftBlocks));
 
     const auto& start(lhs.data());
     auto& val(result.data());
